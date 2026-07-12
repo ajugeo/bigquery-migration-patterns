@@ -10,6 +10,11 @@
 
 CREATE SCHEMA IF NOT EXISTS poc;
 
+-- DROP first: CREATE OR REPLACE cannot change an existing table's
+-- partitioning spec, so a leftover date-partitioned twin from a previous
+-- attempt blocks the range-partitioned one with an "Invalid value" error.
+DROP TABLE IF EXISTS poc.taxi_trips_2023;
+
 -- The twin: partitioned by an integer month key, clustered.
 CREATE OR REPLACE TABLE poc.taxi_trips_2023
 PARTITION BY RANGE_BUCKET(trip_month, GENERATE_ARRAY(202301, 202313, 1))
