@@ -8,7 +8,11 @@ Dry runs are free. In the console the estimate appears at the top right before y
 
 ## The experiment
 
-Run the files in order:
+Two ways to run it:
+
+**One-shot:** paste `sql/00_run_all.sql` into the console and run it once. It builds the twin, runs all four probes, and its final statement reports bytes processed and billed per probe from BigQuery's own job metadata. Total scan budget is roughly 160 GB, well inside the free tier.
+
+**Step by step**, if you want to watch the dry-run estimates move (the estimator has its own lessons; see the decision note):
 
 1. `sql/01_measure_baseline.sql` - a one-month query on the raw public table. Dry-run it and record the estimate. Expect the full table size: no partitioning means a date filter scans everything.
 2. `sql/02_build_partitioned_twin.sql` - copies one year into your own dataset, partitioned by day and clustered. This scans the source once, so check the estimate before running and stay inside your budget or free tier.
@@ -17,12 +21,12 @@ Run the files in order:
 
 ## My results
 
-| Query | Bytes estimated | Bytes billed |
-|-------|-----------------|--------------|
-| Baseline: one month, raw table | (fill) | (fill) |
-| Twin: same month | (fill) | (fill) |
-| Twin: month + payment_type | (fill) | (fill) |
-| Twin: function-wrapped date filter | (fill) | (fill) |
+| Probe | GB processed | GB billed |
+| --- | --- | --- |
+| baseline_raw: one month, raw unpartitioned table | (fill) | (fill) |
+| twin_pruned: same month, partitioned twin | (fill) | (fill) |
+| twin_clustered: month plus payment_type filter | (fill) | (fill) |
+| twin_function_wrapped: pruning defeated | (fill) | (fill) |
 
 ## Decision note
 
