@@ -23,12 +23,36 @@ Two ways to run it:
 
 ## My results
 
+From my sandbox run, July 2026:
+
 | Probe | GB processed | GB billed |
 | --- | --- | --- |
-| baseline_raw: one month, raw unpartitioned table | (fill) | (fill) |
-| twin_pruned: same month, partitioned twin | (fill) | (fill) |
-| twin_clustered: month plus payment_type filter | (fill) | (fill) |
-| twin_no_prune: filter misses the partition column | (fill) | (fill) |
+| baseline_raw: one month, raw unpartitioned table | 1.588 | 1.588 |
+| twin_pruned: same month, partitioned twin | 0.005 | 0.01 |
+| twin_clustered: month plus payment_type filter | 0.004 | 0.01 |
+| twin_no_prune: filter misses the partition column | 0.005 | 0.01 |
+
+Row counts agreed everywhere they should: raw table and twin both returned
+625,645 trips for June 2023; the clustered probe returned the Cash subset
+(179,027). The twin holds 6,495,415 rows.
+
+Things I did not expect, caught during the run:
+
+- The baseline is 1.588 GB, not the table's ~75 GB. COUNT(*) with a WHERE
+  only reads the filter column; columnar storage cut the scan ~50x before
+  partitioning did anything. Partitioning then cut it another ~300x.
+- Billed can exceed processed on small queries: BigQuery bills a 10 MB
+  minimum per query, so 5 MB processed shows as 0.01 GB billed.
+- Re-running the identical baseline cost 0.0 bytes: unchanged query text on
+  unchanged data is served from the query cache, free.
+- The bare COUNT(*) row check also cost 0.0: row counts come from table
+  metadata, no scan at all.
+- twin_no_prune should have scanned the whole twin and did not. Because the
+  table is partitioned by month, every storage block is time-localized, and
+  the scanner skipped non-June blocks via block min/max metadata even though
+  the filter missed the partition column. The dry-run estimate still shows a
+  full scan, and this rescue depends on physical layout you do not control,
+  so the design rule stands: filter the partition column.
 
 ## Decision note
 
